@@ -15,7 +15,31 @@ namespace BashLinq
                 .AsQueryable()
                 .ApplyHighOrderFunction(args.First().ToLowerInvariant(), args.Skip(1).Single())
                 .ToDynamicList()
-                .ForEach(Console.WriteLine);
+                .FormatOutput()
+                .Dump();
+
+        private static IEnumerable<string> FormatOutput(this IReadOnlyCollection<dynamic> dynamicList)
+        {
+            IEnumerable<string> FormatGroupingOutput()
+            {
+                foreach (var item in dynamicList)
+                {
+                    yield return item.Key.ToString();
+
+                    foreach (var value in item)
+                        yield return $"    {value}";
+                }
+            }
+
+            var groupingType = ((Type)dynamicList.First().GetType())
+                                    .GetInterfaces()
+                                    .Any(i => i.IsConstructedGenericType &&
+                                      i.GetGenericTypeDefinition() == typeof(IGrouping<,>));
+
+            return groupingType ?
+                   FormatGroupingOutput() :
+                   dynamicList.Select<dynamic, string>(item => item.ToString());
+        }
 
         private static IQueryable ApplyHighOrderFunction(
             this IQueryable<string> source,

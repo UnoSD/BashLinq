@@ -2,7 +2,7 @@
   "profiles": {
     "BashLinq": {
       "commandName": "Project",
-      "commandLineArgs": "select ToUpper()"
+      "commandLineArgs": "groupby \"i => i.ToLower().Contains(\"\"\"a\"\"\")\""
     }
   }
 }
