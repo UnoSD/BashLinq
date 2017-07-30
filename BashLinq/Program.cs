@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Linq.Dynamic.Core;
+using System.Reflection;
 
 namespace BashLinq
 {
@@ -17,35 +18,33 @@ namespace BashLinq
                 .ForEach(Console.WriteLine);
 
         private static IQueryable ApplyHighOrderFunction(
-            this IQueryable<string> source, 
-            string hofName, 
+            this IQueryable<string> source,
+            string hofName,
             string predicate)
         {
-            switch (hofName)
-            {
-                case "select":
-                    return source.Select(predicate);
-                case "where":
-                    return source.Where(predicate);
-                default:
-                    throw new Exception($"Argument {hofName} unrecognised");
-            }
+            var methodInfos = typeof(DynamicQueryableExtensions)
+                                .GetMethods()
+                                .Where(m => m.GetParameters().MatchDesiredInput() && !m.IsGenericMethod)
+                                .ToArray();
+
+            var methodInfo = methodInfos.SingleOrDefault(m => m.Name.ToLowerInvariant() == hofName) ??
+                                         throw new Exception($"Argument {hofName} unrecognised");
+
+            return (IQueryable)methodInfo.Invoke(null, new object[] { source, predicate, new object[0] });
         }
 
-        private static IEnumerable<TOut> TakeWhile<TIn, TOut>(
-            this TIn source,
-            Func<TIn, TOut> map,
-            Func<TIn, TOut, bool> stopCondition)
+        private static bool MatchDesiredInput(this IReadOnlyCollection<ParameterInfo> parameters)
         {
-            TOut result;
+            if (parameters.Count != 3)
+                return false;
 
-            do
-            {
-                result = map(source);
+            if (parameters.First().ParameterType != typeof(IQueryable))
+                return false;
 
-                yield return result;
-            }
-            while (!stopCondition(source, result));
+            if (parameters.Skip(1).First().ParameterType != typeof(string))
+                return false;
+
+            return parameters.Last().ParameterType == typeof(object[]);
         }
     }
 }

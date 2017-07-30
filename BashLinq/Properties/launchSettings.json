@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "BashLinq": {
+      "commandName": "Project",
+      "commandLineArgs": "select ToUpper()"
+    }
+  }
+}
